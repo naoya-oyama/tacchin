@@ -62,6 +62,8 @@ PC又はスマートフォンのウェブブラウザ(Firefox Developer Edition,
 1. Intel Media Server Studio をインストール
 1. チューナデバイスのドライバをインストール
 1. recpt1互換ソフトウェアのインストール
+1. epgdump(.json出力が出来るもの)をインストール
+ *  https://github.com/Piro77/epgdump
 1. mfx_dispatch をソースから取得してきて、ビルドしてインストール
 1. ffmpeg をソースから取得してきて、ビルドしてインストール
 1. nginx をインストール

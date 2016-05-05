@@ -1,0 +1,230 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>番組表テスト</title>
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script type="text/javascript" src="../script/js/mrstickytableheaders.js"></script>
+
+<script type="text/javascript">
+function DisplayProgramList(mode){
+	$.ajax({
+		url:'channel_config.json',
+		type:'GET',
+		dataType:'json',
+		data: {name: 'channel_config'},
+		timeout:1000,
+		error:function() {
+			alert("JSONファイル読み込みエラー");
+		},
+		success:function(channel_config){
+			var tv              = {};
+			tv["programme"]     = new Array();
+			tv["channels"]      = new Array();
+			tv["display_names"] = {};
+			tv.programme.push({});
+			tv.programme[0].programmes = new Array();
+                        $("#channel").empty();
+                        $("#tbody").empty();
+                        if ( mode == "GR" ) {
+			    for ( var i = 0; i < channel_config["GR"].length; i++ ) {
+				LoadXML("GR", channel_config["GR"][i], tv);
+			    }
+			} else if ( mode == "CS" ) {
+                            LoadXML("CS8",  channel_config[mode], tv);
+                            LoadXML("CS24", channel_config[mode], tv);
+                        } else {
+                            LoadXML(mode, channel_config[mode], tv);
+                        }
+			for (var keyString in tv["display_names"]) {
+				$("#channel").append("<th>" + tv["display_names"][keyString] + "</th>");
+			}
+			for (var i=0; i < tv.programme[0].programmes.length; i++) {
+				var text = "<tr>";
+				for (var j=0; j < tv.channels.length; j++) {
+					if (i in  tv.programme[j].programmes) {
+						if ( tv.channels[j] == tv.programme[j].programmes[i].id ) {
+text += "<td> <a href=\"javascript: func_send_json('" + mode + "','" + tv.programme[j].programmes[i].channel + "','" + tv.programme[j].programmes[i].sid     + "','" + tv.programme[j].programmes[i].name  + "','" + tv.programme[j].programmes[i].title + "')\">" + toTableString(tv.programme[j].programmes[i].start) + toDuration(tv.programme[j].programmes[i].duration) + tv.programme[j].programmes[i].title + "</a></td>";
+						}
+					} else {
+						text += "<td></td>";
+					}
+				}
+				text += "</tr>";
+				$("#tbody").append(text);
+			}
+		},
+	});
+}
+
+function LoadXML(mode, channel, tv)
+{
+	var url = "";
+
+	if ( mode == "GR" ) {
+		url = "GR" + channel + ".json";
+	} else if ( mode == "BS" ) {
+		url = "BS.json";
+	} else if ( mode == "CS8" ) {
+		url = "CS8.json";
+                mode = "CS"
+	} else if ( mode == "CS24" ) {
+		url = "CS24.json";
+                mode = "CS"
+	} else {
+		alert("内部エラーンゴ BS/CS/GR のどれでもない");
+	}
+	$.ajax({
+		url: url,
+		dataType: 'json',
+		data: {name: 'data'},
+		context: tv,
+		async: false,
+		success:function(data){
+			for (var i=0; i < data.length; i++) {
+				var programme_id = this.programme.length - 1;
+				this["channels"].push(data[i].id);
+				this["display_names"][data[i].id] = data[i].name;
+				this.programme.push({});
+				this.programme[programme_id].programmes = new Array();
+				for (var j=0; j < data[i].programs.length; j++) {
+					if (isToday(data[i].programs[j].start, data[i].programs[j].end)) {
+						var tmp = {};
+						tmp.title        = data[i].programs[j].title;
+						tmp.start        = data[i].programs[j].start;
+						tmp.end          = data[i].programs[j].end;
+						tmp.duration     = data[i].programs[j].duration;
+						tmp.sid          = data[i].service_id;
+						if (mode == "BS") {
+							tmp.channel = data[i].satelliteinfo.TP + '_'  + data[i].satelliteinfo.SLOT;
+						} else if (mode == "CS") {
+							tmp.channel = data[i].satelliteinfo.TP;
+						} else if (mode == "GR") {
+							tmp.channel = channel;
+						} else {
+							alert("内部エラーンゴ BS/CS/GR のどれでもない");
+						}
+						tmp.name = data[i].name;
+						tmp.id   = data[i].id;
+						this.programme[programme_id].programmes.push(tmp);
+					}
+				}
+			}
+			return this;
+		},
+	});
+	return tv;
+}
+
+function isToday(x, y)
+{
+	// 【注意】 x, y は1桁大きい数値がくる場合があるので暫定対処をこっちで実装する
+
+	// 以下の場合に番組表に表示する方針とする
+	// start <= 現在時刻 <= end (現在放送中の番組)
+	// 現在時刻 + 3H >= start   (3時間以内に開始する番組)
+	var ret = false;
+	var display_range = 3 * 60 * 60 * 1000; // 未来3時間を表示
+	var start = Number(x);
+	if (start >= 10000000000000) {
+		start = start/10;
+	}
+	var end = Number(y);
+	if (end >= 10000000000000) {
+		end   = end/10;
+	}
+	var today = new Date();
+	var current = today.getTime();
+	if (
+		(start <= current && current <= end) ||
+		(current + display_range >= start && current <= start)
+	) {
+		ret = true;
+	}
+	return ret;
+}
+
+function toTableString(x)
+{
+	// 【注意】 x は1桁大きい数値がくる場合があるので暫定対処をこっちで実装する
+
+	var y = new Date();
+	var z = Number(x);
+	if (z >= 10000000000000) {
+		z = z/10;
+	}
+	y.setTime(z);
+	var ret = String(y.getMonth()+1) + '/' + String(y.getDate()) + ' ' + String(y.getHours()) + ':' + String(y.getMinutes());
+	return ret;
+}
+
+function toDuration(x)
+{
+	var str = "(" + Number(x)/60 + "分)";
+	return str;
+}
+
+$(function(){
+	$('#channel_list').mrstickytableheaders();
+});
+
+function func_send_json(type, channel, sid, name, title)
+{
+    var url = '/tacchin/player/' + type + '/' + channel + '/' + sid;
+    var JSONdata = {
+        channel: channel,
+        name:    name,
+        sid:     sid,
+        title:   title
+    };
+    $.ajax({
+         type:          'post',
+         url:           url,
+         data:          JSON.stringify(JSONdata),
+         contentType:   'application/JSON',
+         dataType:      'html',
+         scriptCharset: 'utf-8',
+    })
+    .done(function(data) {
+        window.history.pushState(null, null, url);
+        window.document.write(data);
+    });
+}
+
+function pClick(){}
+</script>
+</head>
+
+<body>
+<h5>番組表テスト</h5>
+<p id="mode_gr">GR</p>
+<p id="mode_bs">BS</p>
+<p id="mode_cs">CS</p>
+<script type="text/javascript">
+    var mode_gr = document.getElementById("mode_gr");
+    var mode_bs = document.getElementById("mode_bs");
+    var mode_cs = document.getElementById("mode_cs");
+
+    mode_gr.onclick = function() {
+      DisplayProgramList("GR");
+    }
+
+    mode_bs.onclick = function() {
+      DisplayProgramList("BS");
+    }
+
+    mode_cs.onclick = function() {
+      DisplayProgramList("CS");
+    }
+</script>
+<table id="channel_list">
+<thead>
+<tr id="channel">
+</thead>
+<tbody id="tbody">
+</tbody>
+</table>
+</body>
+</html>

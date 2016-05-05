@@ -9,33 +9,33 @@ TVのストリームをブラウザ上にリアルタイムに表示するため
 
 ## 必須(ソフトウェア)
 
-Linux(QSV対応カーネルがインストールされたもの)
-Intel Media Server Studio(Community edition) 2016
-Node.js
-ffmpeg(3.0.0以降)
-nginx
-recpt1互換ソフトウェア
+* Linux(QSV対応カーネルがインストールされたもの)
+* Intel Media Server Studio(Community edition) 2016
+* Node.js
+* ffmpeg(3.0.0以降)
+* nginx
+* recpt1互換ソフトウェア
 
 ## 必須(ハードウェア)
 
-CPU: インストールするIntel Media Server Studio のQSVサポートするもの
-RAM: 2GByte
-TVチューナ: recpt1互換ソフトウェアから操作可能なもの
+* CPU: インストールするIntel Media Server Studio のQSVサポートするもの
+* RAM: 2GByte
+* TVチューナ: recpt1互換ソフトウェアから操作可能なもの
 
 
 # 推奨環境(ハードウェア)
 
-CPU: Intel Core i3 4360
-RAM: 8GB
-DISK: 64GB位(作業ファイルはあまり作りません)
-TVチューナ: PT3
+* CPU: Intel Core i3 4360
+* RAM: 8GB
+* DISK: 64GB位(作業ファイルはあまり作りません)
+* TVチューナ: PT3
 
 # 推奨環境(ソフトウェア)
 
-CentOS 7.1 64bit
-Intel Media Server Studio(Community edition) 2016
-ffmpeg 3.0.0
-node.js v4.1.1
+* CentOS 7.1 64bit
+* Intel Media Server Studio(Community edition) 2016
+* ffmpeg 3.0.0
+* node.js v4.1.1
 
 # 想定視聴環境
 
@@ -66,11 +66,13 @@ PC又はスマートフォンのウェブブラウザ(Firefox Developer Edition,
 1. ffmpeg をソースから取得してきて、ビルドしてインストール
 1. nginx をインストール
  * 以下サンプルを参考に`nginx.conf`を設定する(ACLは適切に投入すること)
+1. node.js をインストール
+1. tacchin をインストール
 ```
     server {
         listen       80 default_server;
         listen       [::]:80 default_server;
-        root         /PATH/TO/dash;
+        root         /PATH/TO/tacchin;
 
         location /data {
             add_header Cache-Control no-cache;
@@ -100,24 +102,22 @@ PC又はスマートフォンのウェブブラウザ(Firefox Developer Edition,
         }
     }
 ```
-1. node.js をインストール
-1. tacchin をインストール
 
 ## tacchin のインストール
 ```
-git pull http://hoge.example.com/まだ決まってない
+git pull git@github.com:naoya-oyama/tacchin.git
 crontab -e
-02 0  *  *  * (cd /PATH/TO/dash/script; ./create_xml.sh ) > /dev/null 2>&1 >/dev/null
-edit /PATH/TO/dash/node.js/tacchin/config.json
+02 0  *  *  * (cd /PATH/TO/tacchin/script; ./create_xml.sh ) > /dev/null 2>&1 >/dev/null
+edit /PATH/TO/tacchin/node.js/tacchin/config.json
 ```
-* tacchin 動作アカウントの crontab に ~/dash/script/create_xml.sh が一日一度動作するように登録する(電波が送出されており、チューナをあまり使用しない時間帯がベスト)
+* tacchin 動作アカウントの crontab に ~/tacchin/script/create_xml.sh が一日一度動作するように登録する(電波が送出されており、チューナをあまり使用しない時間帯がベスト)
 * config.json を環境に合わせて書き換える(server_ip とチューナデバイス名は環境に合わせる)
 * server_ip とは書いてあるが FQDN も指定可能。ブラウザ側からのアドレス解決が出来るものであれば可。IPv4, IPv6, ホスト名何でもOK
 
 ## tacchin の起動
 ```
 sudo systemctl start nginx
-/PATH/TO/dash/node.js/tacchin/bin/www
+/PATH/TO/tacchin/node.js/tacchin/bin/www
 ```
 tacchin/bin/www が異常終了した場合、起動しなおしてあげてください。
 状態を保存するファイルを使用していないので、問題なく起動するはずです。

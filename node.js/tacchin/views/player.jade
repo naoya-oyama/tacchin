@@ -1,0 +1,103 @@
+doctype html
+html
+  head
+    title たっちん #{device}
+  body
+    div(id="StreamInfo")
+      h1 たっちん #{device} #{sid} #{channel_name} #{title}
+    script(src="/script/js/socket.io.js")
+    script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js")
+    script(src="http://cdn.dashjs.org/latest/dash.all.min.js")
+    script.
+      var socket = io.connect('http://#{server_ip}/');
+      var sid = '#{connect_sid}';
+    
+      socket.on("connected", function(name) {
+        socket.send({ cookie: document.cookie });
+      });
+      socket.on("publish", function (data) { addMessage(data.value); });
+
+      socket.on("disconnect", function () {
+        socket.send({ cookie: document.cookie });
+      });
+
+      socket.on('PING', function() {
+        socket.emit('PONG', sid);
+      });
+
+      function start(name) {
+        socket.emit("connected", name);
+      }
+
+      function publishMessage() {
+        var textInput = document.getElementById('msg_input');
+        var msg = "[" + myName + "] " + textInput.value;
+        socket.emit("publish", {value: msg});
+        textInput.value = '';
+      }
+
+      function addMessage (msg) {
+        var domMeg = document.createElement('div');
+        domMeg.innerHTML = new Date().toLocaleTimeString() + ' ' + msg;
+        msgArea.appendChild(domMeg);
+      }
+
+      socket.connect();
+
+      function check_mpd() {
+        $.ajax({
+          type:    'GET',
+          url:     '/data/init-stream0.m4s'
+        }).done(function(data, status, xhr) {
+            $.ajax({
+              type:    'GET',
+              url:     '/data/#{device}.mpd'
+            }).done(function(data, status, xhr) {
+                $("#loading").fadeOut();
+                $("#StreamInfo").fadeOut();
+                $("#player").append('<video id="videoPlayer", controls></video>');
+                play_start();
+            }).fail(function(xhr, status, error) {
+                // マニフェストファイルが存在する
+                // init-stream9.m4s が存在する
+                // chunk-stream9-99999.m4s が3個以上存在する
+                // 上記全てを満たした場合に再生開始できる模様。
+
+                // マニフェストを解析すれば、chunk-stream が存在するか分かるけど、
+                // 解析ダルイので20秒待ちで決めうち。
+                // chunk-stream が出力され始めるのに10秒
+                // chunk-stream が出力され始めて 3つのチャンクが存在する状態になるまで更に10秒
+                $("#loading").append('<h1>MPEG DASH ストリーム準備中ンゴ</h>');
+                setTimeout("check_mpd()", 20000);
+            });
+        }).fail(function(xhr, status, error) {
+            $("#loading").append('<h1>MPEG DASH ストリーム準備中ンゴ</h>');
+            setTimeout("check_mpd()", 10000);
+        });
+      }
+      check_mpd();
+
+      window.onpopstate = function(event) {
+        url = document.location;
+        $.ajax({
+          type:     'GET',
+          url:       url,
+          dataType: 'html',
+        })
+        .done(function(data) {
+            socket.close(1000, "BACK");
+            window.document.write(data);
+        });
+      }
+
+      function play_start(){
+        var url    = "/data/#{device}.mpd";
+        var player = dashjs.MediaPlayer().create();
+        var view   = document.querySelector("#videoPlayer")
+        player.initialize(view, url, true);
+      }
+
+    div(id="loading")
+      <img src="/img/gif-load.gif">
+
+    div(id="player")

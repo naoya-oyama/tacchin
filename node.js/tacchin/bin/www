@@ -1,0 +1,157 @@
+#!/usr/bin/env node
+/**
+ * Module dependencies.
+ */
+
+var app  = require('../app');
+var storage = require('../storage');
+var debug = require('debug')('express-session-sample:server');
+var http = require('http');
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '8078');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+var express       = require('express');
+var session       = require('express-session');
+var expressSessionStore = new session.MemoryStore;
+var io            = require('socket.io').listen(server);
+var sharedsession = require("express-socket.io-session");
+var cookie        = require('cookie-parser/node_modules/cookie');
+var parser        = require('cookie-parser');
+var async         = require('async');
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
+
+io.use(function(client, next) {
+  var cookies, sid, signedCookies;
+  signedCookies = cookie.parse(client.request.headers.cookie);
+  cookies = parser.signedCookies(signedCookies, 'keyboard cat');
+  sid = cookies['connect.sid'];
+
+  return expressSessionStore.get(sid, function(error, session) {
+    if (error != null) {
+      return next(error);
+    }
+    console.log('sid: [' + sid + '] ンゴ');
+    client.session = session;
+    session_manager(client, sid);
+    return next();
+  });
+});
+
+io.on('connection', function(client) {
+    client.on('PONG', function(session_id) {
+        var valid = session_id + '-valid';
+        var date  = new Date();
+        storage.setItem(valid, date.getTime() + 5000);
+        console.log('PONG: [' + session_id + '][' + date.getTime() + '] timeout:[' + storage.getItem(valid) + '] ンゴ');
+    });
+});
+
+function hb(client)
+{
+    console.log("PING打つンゴ");
+    client.emit('PING', 'ンゴ');
+}
+
+function session_manager(client, sid)
+{
+    var valid = sid + '-valid';
+    var date  = new Date();
+    storage.setItem(valid, date.getTime() + 5000);
+    async.forever(function(callback) {
+        async.series([
+            function(callback) {
+                hb(client);
+                setTimeout(callback, 1000);
+            },
+            function(callback) {
+                date  = new Date();
+                if (storage.getItem(valid) > date.getTime()) {
+                    callback();
+                } else {
+                    console.log("タイムアウトしたンゴ now[" + date.getTime() + "] timeout[" + storage.getItem(valid) + "]" );
+                    storage.removeItem(valid);
+                }
+            }
+        ], callback);
+    }, function(err) {
+        console.log(err);
+    });
+}

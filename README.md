@@ -68,9 +68,11 @@ PC又はスマートフォンのウェブブラウザ(Firefox Developer Edition,
 1. ffmpeg をソースから取得してきて、ビルドしてインストール
 1. nginx をインストール
  * 以下サンプルを参考に`nginx.conf`を設定する(ACLは適切に投入すること)
+ * nginx を tacchin アカウントで動作させたい場合、tacchin アカウントを作成すること
 1. node.js をインストール
 1. tacchin をインストール
 ```
+user tacchin tacchin;
     server {
         listen       80 default_server;
         listen       [::]:80 default_server;

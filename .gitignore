@@ -1,4 +1,5 @@
 /data/*
+!/data/.gitkeep
 /program/BS*.json
 /program/CS*.json
 /program/GR*.json

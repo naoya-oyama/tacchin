@@ -1,6 +1,6 @@
 #!/bin/bash
 PATH=/usr/local/bin:$PATH
-TMP=$HOME/dash
+TMP=$HOME/tacchin
 GR_Time="60"
 BS_Time="180"
 CS_Time="180"

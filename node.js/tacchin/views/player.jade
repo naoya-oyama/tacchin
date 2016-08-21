@@ -47,11 +47,11 @@ html
       function check_mpd() {
         $.ajax({
           type:    'GET',
-          url:     '/data/init-stream0.m4s'
+          url:     '/data/#{device}/init-stream0.m4s'
         }).done(function(data, status, xhr) {
             $.ajax({
               type:    'GET',
-              url:     '/data/#{device}.mpd'
+              url:     '/data/#{device}/#{device}.mpd'
             }).done(function(data, status, xhr) {
                 $("#loading").fadeOut();
                 $("#StreamInfo").fadeOut();
@@ -91,7 +91,7 @@ html
       }
 
       function play_start(){
-        var url    = "/data/#{device}.mpd";
+        var url    = "/data/#{device}/#{device}.mpd";
         var player = dashjs.MediaPlayer().create();
         var view   = document.querySelector("#videoPlayer")
         player.initialize(view, url, true);

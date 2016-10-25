@@ -15,6 +15,7 @@ function DisplayProgramList(mode){
 		type:'GET',
 		dataType:'json',
 		data: {name: 'channel_config'},
+		cache: false,
 		timeout:1000,
 		error:function() {
 			alert("JSONファイル読み込みエラー");
